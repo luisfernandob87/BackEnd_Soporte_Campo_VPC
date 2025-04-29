@@ -22,7 +22,14 @@ const httpsAgent = new https.Agent({
 });
 
 //middleware
-app.use(cors());
+// Configuración de CORS
+app.use(cors({
+  origin: 'https://soporte-campo-vpc.onrender.com',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 // app.use(routerAut)
