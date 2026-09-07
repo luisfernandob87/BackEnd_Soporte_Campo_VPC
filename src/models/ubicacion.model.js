@@ -8,6 +8,10 @@ const Ubicacion = sequelize.define('ubicacion', {
         autoIncrement: true,
         allowNull: false
     },
+    idUsuario: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
     latitud: {
         type: DataTypes.STRING,
         allowNull: false
@@ -15,6 +19,15 @@ const Ubicacion = sequelize.define('ubicacion', {
     longitud: {
         type: DataTypes.STRING,
         allowNull: false
+    },
+    accuracy: {
+        type: DataTypes.FLOAT,
+        allowNull: true
+    },
+    timestamp: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW
     }
 })
 

@@ -5,7 +5,7 @@ const https = require('https');
 const { URLSearchParams } = require('url'); // Added URLSearchParams
 const { routerUser } = require('./routes/usuario.routes')
 // const { routerAut } = require('./controllers/auth.controller')
-const {routerUbicacion} = require('./routes/ubicacion.routes')
+const { routerUbicacion } = require('./routes/ubicacion.routes')
 // const { syncUsersFromLDAP } = require('./controllers/auth.controller');
 const { routerSede } = require('./routes/sede.routes');
 
@@ -24,7 +24,8 @@ const httpsAgent = new https.Agent({
 //middleware
 // Configuración de CORS
 app.use(cors({
-  origin: 'https://soporte-campo-vpc.onrender.com',
+  // origin: 'https://soporte-campo-vpc.onrender.com',
+  origin: 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
