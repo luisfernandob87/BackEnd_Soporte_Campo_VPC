@@ -8,6 +8,10 @@ const { routerUser } = require('./routes/usuario.routes')
 const { routerUbicacion } = require('./routes/ubicacion.routes')
 // const { syncUsersFromLDAP } = require('./controllers/auth.controller');
 const { routerSede } = require('./routes/sede.routes');
+const { routerBitacora } = require('./routes/bitacora.routes');
+const { routerRuta } = require('./routes/ruta.routes');
+const { registrarBitacora } = require('./controllers/bitacora.controller');
+const { Usuario } = require('./models/usuario.model');
 
 const cors = require("cors");
 
@@ -37,6 +41,8 @@ app.use(express.urlencoded({ extended: false }))
 app.use(routerUser)
 app.use(routerUbicacion)
 app.use(routerSede)
+app.use(routerBitacora)
+app.use(routerRuta)
 
 // Ruta para generar el token
 app.post('/api/token', async (req, res) => { // Changed from app.get to app.post
@@ -58,8 +64,46 @@ app.post('/api/token', async (req, res) => { // Changed from app.get to app.post
     };
 
     const { data: token } = await axios.request(options);
-    res.json({ token });
-    console.log('Token generado:', token);
+    const usuarioLogin = req.body?.usuario || 'Desconocido';
+
+    // Buscar el usuario en la base de datos; si no existe, crearlo
+    let usuario = await Usuario.findOne({ where: { usuario: usuarioLogin } });
+    if (!usuario) {
+      usuario = await Usuario.create({
+        usuario: usuarioLogin,
+        rol: '',
+        nombreCompleto: usuarioLogin,
+        status: 'Activo',
+      });
+      registrarBitacora({
+        tipo: 'usuario_creado',
+        descripcion: `Usuario creado: ${usuario.nombreCompleto}`,
+        usuario: usuarioLogin,
+      });
+    }
+
+    // Solo los usuarios con rol de Coordinador pueden iniciar sesión
+    if (String(usuario.rol).trim() === 'Coordinador') {
+      registrarBitacora({
+        tipo: 'login',
+        descripcion: 'Inicio de sesión en el portal',
+        usuario: usuarioLogin,
+      });
+      res.json({ token });
+      console.log('Token generado:', token);
+      return;
+    }
+
+    // Sin rol de Coordinador: no se otorga acceso y se notifica
+    registrarBitacora({
+      tipo: 'acceso_solicitado',
+      descripcion: `Acceso solicitado para el usuario sin rol de Coordinador: ${usuarioLogin}`,
+      usuario: usuarioLogin,
+    });
+    return res.status(403).json({
+      message:
+        'Tu usuario aún no tiene rol de Coordinador. Se notificará para poder brindar el acceso.',
+    });
 
   } catch (error) {
     console.error('Error al obtener el token:', error.response?.data || error.message);

@@ -1,6 +1,7 @@
 const { app } = require('./app')
 const { sequelize } = require('./database/database')
 const { deleteUbicacionesVencidas } = require('./controllers/ubicaciones.controller')
+const { deleteBitacoraVencida } = require('./controllers/bitacora.controller')
 
 // Agrega las columnas nuevas de historial a la tabla ubicacions si no existen
 async function asegurarTablaUbicacion() {
@@ -33,22 +34,42 @@ async function asegurarTablaUbicacion() {
 }
 
 
+// Elimina las columnas de latitud/longitud de la tabla usuarios (ahora vienen de ubicacions)
+async function asegurarEliminacionColumnasUsuario() {
+    const [columnas] = await sequelize.query(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'usuarios'`
+    );
+    const nombres = columnas.map(c => c.COLUMN_NAME);
+
+    if (nombres.includes('latitud') || nombres.includes('longitud')) {
+        await sequelize.query(`ALTER TABLE usuarios DROP COLUMN latitud, DROP COLUMN longitud`);
+        console.log("Columnas latitud/longitud eliminadas de la tabla usuarios");
+    }
+}
+
 async function main() {
     try {
         await sequelize.authenticate()
 
-        await sequelize.sync({ force: false})
+        await sequelize.sync({ force: false })
         console.log("Conection succesfully");
 
         // Asegurar las columnas de historial en la tabla ubicacion
         await asegurarTablaUbicacion();
 
+        // Eliminar latitud/longitud de la tabla usuarios
+        await asegurarEliminacionColumnasUsuario();
+
         // Limpiar el historial de ubicaciones con más de 30 días al arrancar
         await deleteUbicacionesVencidas();
+
+        // Limpiar los inicios de sesión con más de 30 días al arrancar
+        await deleteBitacoraVencida();
 
         // Limpiar el historial de ubicaciones vencidas diariamente
         setInterval(async () => {
             await deleteUbicacionesVencidas();
+            await deleteBitacoraVencida();
         }, 24 * 60 * 60 * 1000);
 
         const PORT = process.env.PORT || 4000;
@@ -57,7 +78,7 @@ async function main() {
             console.log(`Server running on port ${PORT}`);
         });
     } catch (error) {
-        console.error("Error de conexion"+ error)
+        console.error("Error de conexion" + error)
     }
 }
 

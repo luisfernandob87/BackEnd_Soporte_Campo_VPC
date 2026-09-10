@@ -1,4 +1,5 @@
 const { Usuario } = require('../models/usuario.model')
+const { registrarBitacora } = require('./bitacora.controller')
 
 
 
@@ -7,6 +8,17 @@ const getUsuarios = async (req, res) => {
     try {
         const usuarios = await Usuario.findAll({
             where:{ status: 'Activo'}
+        })
+        res.json(usuarios)
+    } catch (error) {
+        return res.status(500).json({ message: error.message })
+    }
+}
+
+const getAllUsuarios = async (req, res) => {
+    try {
+        const usuarios = await Usuario.findAll({
+            order: [['nombreCompleto', 'ASC']]
         })
         res.json(usuarios)
     } catch (error) {
@@ -27,15 +39,17 @@ const getUsuario = async (req, res) => {
 }
 
 const createUsuario = async (req, res) => {
-    const { usuario, nombreCompleto } = req.body
+    const { usuario, nombreCompleto, rol = '', status = 'Activo' } = req.body
     try {
         const createUsuario = await Usuario.create({
         usuario,
-        rol: 'Técnico',
+        rol,
         nombreCompleto,
-        status: 'Activo',
-        latitud: '',
-        longitud: '',
+        status,
+        })
+        registrarBitacora({
+            tipo: 'usuario_creado',
+            descripcion: `Técnico creado: ${createUsuario.nombreCompleto}`
         })
         res.json(createUsuario)
     } catch (error) {
@@ -50,8 +64,12 @@ const updateUsuario = async (req, res) => {
     })
     updUser.set(req.body)
     await updUser.save()
+    registrarBitacora({
+        tipo: 'usuario_editado',
+        descripcion: `Técnico actualizado: ${updUser.nombreCompleto || usuario_id}`
+    })
     return res.json(updUser)
     };
 
 
-module.exports = { getUsuarios, getUsuario, updateUsuario, createUsuario }
+module.exports = { getUsuarios, getAllUsuarios, getUsuario, updateUsuario, createUsuario }

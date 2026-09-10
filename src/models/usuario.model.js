@@ -25,14 +25,6 @@ const Usuario = sequelize.define('usuario', {
     status:{
         type: DataTypes.STRING,
         allowNull: false,
-    },
-    latitud:{
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    longitud:{
-        type: DataTypes.STRING,
-        allowNull: false,
     }
 })
 

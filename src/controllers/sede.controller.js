@@ -1,4 +1,5 @@
 const {Sede} = require('../models/sede.model'); // Asegúrate de que el modelo esté definido
+const { registrarBitacora } = require('./bitacora.controller');
 
 // Obtener todas las sedes
 const getSedes = async (req, res) => {
@@ -20,6 +21,10 @@ const createSede = async (req, res) => {
             status: 'Activo' // Agregar el status por defecto
         });
         await newSede.save();
+        registrarBitacora({
+            tipo: 'sede_creada',
+            descripcion: `Sede creada: ${newSede.nombre} (${newSede.tipo})`
+        });
         res.status(201).json(newSede);
     } catch (error) {
         res.status(500).json({ message: 'Error al crear la sede', error });
@@ -46,6 +51,10 @@ const updateSede = async (req, res) => {
 
         // Guardar los cambios
         await sede.save();
+        registrarBitacora({
+            tipo: 'sede_editada',
+            descripcion: `Sede actualizada: ${sede.nombre} (${sede.tipo})`
+        });
 
         // Enviar la sede actualizada como respuesta
         return res.status(200).json(sede);
@@ -58,8 +67,16 @@ const updateSede = async (req, res) => {
 const deleteSede = async (req, res) => {
     try {
         const { sede_id } = req.params;
-        const deletedSede = await Sede.findByIdAndDelete(sede_id);
-        if (!deletedSede) return res.status(404).json({ message: 'Sede no encontrada' });
+        const sede = await Sede.findOne({
+            where: { sede_id }
+        });
+        if (!sede) return res.status(404).json({ message: 'Sede no encontrada' });
+        const { nombre, tipo } = sede;
+        await sede.destroy();
+        registrarBitacora({
+            tipo: 'sede_eliminada',
+            descripcion: `Sede eliminada: ${nombre} (${tipo})`
+        });
         res.status(200).json({ message: 'Sede eliminada correctamente' });
     } catch (error) {
         res.status(500).json({ message: 'Error al eliminar la sede', error });
