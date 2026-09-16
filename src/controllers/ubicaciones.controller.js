@@ -83,14 +83,4 @@ const getUbicacion = async (req, res) => {
     }
 }
 
-// const updateUbicacion = async (req, res) => {
-//     const { ubicacion_id } = req.params
-//     const updMarcas = await Marcas.findOne({
-//         where: { marca_id }
-//     })
-//     updMarcas.set(req.body)
-//     await updMarcas.save()
-//     return res.json(updMarcas)
-// }
-
 module.exports = { createUbicacion, createHistorialUbicacion, getHistorialUbicacion, deleteUbicacionesVencidas, getUbicacion }

@@ -13,8 +13,7 @@ async function asegurarTablaUbicacion() {
 
     // Normaliza la columna del usuario a "idUsuario" (camelCase), sin importar
     // el estado previo de la BD (Render/PostgreSQL). Si existe la variante en
-    // minúsculas (idusuario) migra sus datos a "idUsuario" y la elimina para
-    // evitar columnas duplicadas.
+    // minúsculas (idusuario) migra sus datos a "idUsuario" y la elimina.
     const tieneCamel = nombres.includes('idUsuario');
     const tieneMinus = nombres.includes('idusuario');
 
@@ -40,8 +39,7 @@ async function asegurarTablaUbicacion() {
     await sequelize.query(`CREATE INDEX IF NOT EXISTS IX_ubicacion_idUsuario ON "ubicacions" ("idUsuario")`);
 }
 
-
-// Elimina las columnas de latitud/longitud de la tabla usuarios (ahora vienen de ubicacions).
+// Elimina las columnas de latitud/longitud de la tabla usuarios.
 // Versión compatible con PostgreSQL (Render).
 async function asegurarEliminacionColumnasUsuario() {
     const [columnas] = await sequelize.query(
@@ -62,19 +60,11 @@ async function main() {
         await sequelize.sync({ force: false })
         console.log("Conection succesfully");
 
-        // Asegurar las columnas de historial en la tabla ubicacion
         await asegurarTablaUbicacion();
-
-        // Eliminar latitud/longitud de la tabla usuarios
         await asegurarEliminacionColumnasUsuario();
-
-        // Limpiar el historial de ubicaciones con más de 30 días al arrancar
         await deleteUbicacionesVencidas();
-
-        // Limpiar los inicios de sesión con más de 30 días al arrancar
         await deleteBitacoraVencida();
 
-        // Limpiar el historial de ubicaciones vencidas diariamente
         setInterval(async () => {
             await deleteUbicacionesVencidas();
             await deleteBitacoraVencida();
