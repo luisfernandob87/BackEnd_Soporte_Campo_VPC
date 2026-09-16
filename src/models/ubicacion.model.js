@@ -8,7 +8,7 @@ const Ubicacion = sequelize.define('ubicacion', {
         autoIncrement: true,
         allowNull: false
     },
-    idUsuario: {
+    idusuario: {
         type: DataTypes.INTEGER,
         allowNull: false
     },
