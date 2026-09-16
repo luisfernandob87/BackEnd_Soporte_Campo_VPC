@@ -4,7 +4,8 @@
   "description": "Back end para la aplicacion de soporte de campo",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/index.js"
+      "start": "node src/index.js",
+      "dev": "nodemon src/index.js"
   },
   "keywords": [],
   "author": "",
