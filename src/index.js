@@ -51,7 +51,7 @@ async function main() {
     try {
         await sequelize.authenticate()
 
-        await sequelize.sync({ force: true })
+        await sequelize.sync({ force: false })
         console.log("Conection succesfully");
 
         // Asegurar las columnas de historial en la tabla ubicacion
