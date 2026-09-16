@@ -11,17 +11,21 @@ async function asegurarTablaUbicacion() {
     );
     const nombres = columnas.map(c => c.column_name);
 
-    // Unifica el nombre de la columna del usuario en "idUsuario" (camelCase).
-    // Si la BD quedó con idusuario en minúsculas (creada por un ADD sin comillas),
-    // la renombra sin perder datos; si no existe la crea.
-    if (!nombres.includes('idUsuario')) {
-        if (nombres.includes('idusuario')) {
-            await sequelize.query(`ALTER TABLE "ubicacions" RENAME COLUMN idusuario TO "idUsuario"`);
-            console.log("Columna idusuario renombrada a idUsuario en la tabla ubicacions");
-        } else {
-            await sequelize.query(`ALTER TABLE "ubicacions" ADD COLUMN "idUsuario" INTEGER NOT NULL DEFAULT 0`);
-            console.log("Columna idUsuario agregada a la tabla ubicacions");
-        }
+    // Normaliza la columna del usuario a "idUsuario" (camelCase), sin importar
+    // el estado previo de la BD (Render/PostgreSQL). Si existe la variante en
+    // minúsculas (idusuario) migra sus datos a "idUsuario" y la elimina para
+    // evitar columnas duplicadas.
+    const tieneCamel = nombres.includes('idUsuario');
+    const tieneMinus = nombres.includes('idusuario');
+
+    if (!tieneCamel) {
+        await sequelize.query(`ALTER TABLE "ubicacions" ADD COLUMN "idUsuario" INTEGER NOT NULL DEFAULT 0`);
+        console.log("Columna idUsuario agregada a la tabla ubicacions");
+    }
+    if (tieneMinus) {
+        await sequelize.query(`UPDATE "ubicacions" SET "idUsuario" = idusuario WHERE "idUsuario" IS NULL OR "idUsuario" = 0`);
+        await sequelize.query(`ALTER TABLE "ubicacions" DROP COLUMN idusuario`);
+        console.log("Columna idusuario migrada y eliminada de la tabla ubicacions");
     }
     if (!nombres.includes('accuracy')) {
         await sequelize.query(`ALTER TABLE "ubicacions" ADD COLUMN accuracy FLOAT`);
