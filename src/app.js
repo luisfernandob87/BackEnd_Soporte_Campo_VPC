@@ -28,8 +28,8 @@ const httpsAgent = new https.Agent({
 //middleware
 // Configuración de CORS
 app.use(cors({
-  // origin: 'https://soporte-campo-vpc.onrender.com',
-  origin: 'http://localhost:5173',
+  origin: 'https://soporte-campo-vpc.onrender.com',
+  // origin: 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
