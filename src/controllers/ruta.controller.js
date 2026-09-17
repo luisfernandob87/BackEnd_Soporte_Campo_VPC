@@ -37,16 +37,19 @@ const cargarRuta = async (id) => {
         estado: ruta.estado,
         descripcion: ruta.descripcion,
         nombreCompleto: ruta.usuario ? ruta.usuario.nombreCompleto : null,
-        sedes: (ruta.detalles || []).map((d) => ({
-            detalle_id: d.detalle_id,
-            sede_id: d.sede_id,
-            orden: d.orden,
-            nombre: d.sede ? d.sede.nombre : null,
-            tipo: d.sede ? d.sede.tipo : null,
-            direccion: d.sede ? d.sede.direccion : null,
-            latitud: d.sede ? d.sede.latitud : null,
-            longitud: d.sede ? d.sede.longitud : null,
-        })),
+        sedes: (ruta.detalles || [])
+            .slice()
+            .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+            .map((d) => ({
+                detalle_id: d.detalle_id,
+                sede_id: d.sede_id,
+                orden: d.orden,
+                nombre: d.sede ? d.sede.nombre : null,
+                tipo: d.sede ? d.sede.tipo : null,
+                direccion: d.sede ? d.sede.direccion : null,
+                latitud: d.sede ? d.sede.latitud : null,
+                longitud: d.sede ? d.sede.longitud : null,
+            })),
     }
 }
 
