@@ -2,6 +2,9 @@ const { app } = require('./app')
 const { sequelize } = require('./database/database')
 const { deleteUbicacionesVencidas } = require('./controllers/ubicaciones.controller')
 const { deleteBitacoraVencida } = require('./controllers/bitacora.controller')
+const { deleteNotificacionesVencidas } = require('./controllers/notificaciones.controller')
+const { inicializarWebSocket } = require('./sockets/notificaciones.socket')
+const { iniciarVigilanciaTickets } = require('./services/ticketWatcher.service')
 
 // Agrega las columnas nuevas de historial a la tabla ubicacions si no existen.
 // Versión idempotente para PostgreSQL (Render).
@@ -53,6 +56,20 @@ async function asegurarEliminacionColumnasUsuario() {
     }
 }
 
+// Agrega la columna datos_ticket (JSON TICKET metadata) a la tabla notificacions.
+// Versión idempotente para PostgreSQL (Render).
+async function asegurarColumnasNotificacion() {
+    const [columnas] = await sequelize.query(
+        `SELECT column_name FROM information_schema.columns WHERE table_name = 'notificacions'`
+    );
+    const nombres = columnas.map(c => c.column_name);
+
+    if (!nombres.includes('datos_ticket')) {
+        await sequelize.query(`ALTER TABLE "notificacions" ADD COLUMN "datos_ticket" TEXT`);
+        console.log("Columna datos_ticket agregada a la tabla notificacions");
+    }
+}
+
 async function main() {
     try {
         await sequelize.authenticate()
@@ -62,19 +79,25 @@ async function main() {
 
         await asegurarTablaUbicacion();
         await asegurarEliminacionColumnasUsuario();
+        await asegurarColumnasNotificacion();
         await deleteUbicacionesVencidas();
         await deleteBitacoraVencida();
+        await deleteNotificacionesVencidas();
 
         setInterval(async () => {
             await deleteUbicacionesVencidas();
             await deleteBitacoraVencida();
+            await deleteNotificacionesVencidas();
         }, 24 * 60 * 60 * 1000);
 
         const PORT = process.env.PORT || 4000;
 
-        app.listen(PORT, () => {
+        const server = app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
         });
+
+        inicializarWebSocket(server);
+        iniciarVigilanciaTickets();
     } catch (error) {
         console.error("Error de conexion" + error)
     }

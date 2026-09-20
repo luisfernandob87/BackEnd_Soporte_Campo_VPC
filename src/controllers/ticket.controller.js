@@ -1,10 +1,7 @@
 const { Usuario } = require('../models/usuario.model')
-const { getEntradas } = require('../services/helix.service')
-
-const FILTRO_TICKETS =
-    `'Status'!="Resolved" AND 'Status'!="Closed" AND 'Status'!="Cancelled"`
-const FILTRO_WORKORDERS =
-    `'Status'!="Completed" AND 'Status'!="Rejected" AND 'Status'!="Cancelled"`
+const {
+    obtenerTicketsAbiertosDeTecnico,
+} = require('../services/ticketsHelix.service')
 
 const getTecnicos = async (req, res) => {
     try {
@@ -32,42 +29,8 @@ const getTicketsDeTecnico = async (req, res) => {
 
         const loginId = tecnico.usuario
 
-        const [ticketsEntries, workOrdersEntries] = await Promise.all([
-            getEntradas(
-                'HPD:Help Desk',
-                `'Assignee Login ID'="${loginId}" AND ${FILTRO_TICKETS}`
-            ).catch(() => []),
-            getEntradas(
-                'WOI:WorkOrder',
-                `'ASLOGID'="${loginId}" AND ${FILTRO_WORKORDERS}`
-            ).catch(() => []),
-        ])
-
-        const tickets = ticketsEntries.map((entry) => {
-            const v = entry.values || {}
-            return {
-                id: v['Request ID'] || 'Sin ID',
-                dwpSrid: v['DWP_SRID'] || 'Sin ID de petición',
-                incidentNumber: v['Incident Number'] || 'Sin número de incidente',
-                urgency: v['Urgency'] || 'Sin urgencia',
-                priority: v['Priority'] || 'Sin prioridad',
-                status: v['Status'] || 'Desconocido',
-                type: 'ticket',
-            }
-        })
-
-        const workOrders = workOrdersEntries.map((entry) => {
-            const v = entry.values || {}
-            return {
-                id: v['Request ID'] || 'Sin ID',
-                dwpSrid: v['DWP_SRID'] || v['SRID'] || 'Sin ID de petición',
-                workOrderId: v['Work Order ID'] || 'Sin número de orden',
-                urgency: v['Urgency'] || 'Sin urgencia',
-                priority: v['Priority'] || 'Sin prioridad',
-                status: v['Status'] || 'Desconocido',
-                type: 'workOrder',
-            }
-        })
+        const resultado = await obtenerTicketsAbiertosDeTecnico(loginId)
+        const { tickets, workOrders } = resultado
 
         res.json({
             tecnico: {

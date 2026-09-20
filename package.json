@@ -4,8 +4,8 @@
   "description": "Back end para la aplicacion de soporte de campo",
   "main": "index.js",
   "scripts": {
-      "start": "node src/index.js",
-      "dev": "nodemon src/index.js"
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
   },
   "keywords": [],
   "author": "",
@@ -23,7 +23,8 @@
     "pg": "^8.11.0",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.32.1",
-    "tedious": "^18.6.1"
+    "tedious": "^18.6.1",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"
