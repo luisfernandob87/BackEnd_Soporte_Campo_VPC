@@ -28,9 +28,19 @@ const httpsAgent = new https.Agent({
 
 //middleware
 // Configuración de CORS
+const corsOrigins = (process.env.CORS_ORIGINS || 'https://soporte-campo-vpc.onrender.com')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: 'https://soporte-campo-vpc.onrender.com',
-  // origin: 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || corsOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true

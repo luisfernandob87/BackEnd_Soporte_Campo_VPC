@@ -1,5 +1,7 @@
 const { Sequelize } = require('sequelize');
 
+const sslHabilitado = process.env.DB_SSL !== 'false';
+
 const sequelize = new Sequelize(
     process.env.DB_NAME,
     process.env.DB_USER,
@@ -9,7 +11,7 @@ const sequelize = new Sequelize(
         port: process.env.DB_PORT,
         dialect: process.env.DB_DIALECT || 'postgres',
         logging: console.log,
-        dialectOptions: process.env.DB_DIALECT === 'postgres'
+        dialectOptions: process.env.DB_DIALECT === 'postgres' && sslHabilitado
             ? {
                 ssl: {
                     require: true,
