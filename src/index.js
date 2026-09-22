@@ -34,12 +34,22 @@ async function asegurarTablaUbicacion() {
         console.log("Columna accuracy agregada a la tabla ubicacions");
     }
     if (!nombres.includes('timestamp')) {
-        await sequelize.query(`ALTER TABLE "ubicacions" ADD COLUMN "timestamp" TIMESTAMP DEFAULT NOW()`);
+        const tipoTimestamp = sequelize.getDialect() === 'mssql'
+            ? `DATETIME DEFAULT GETDATE()`
+            : `TIMESTAMP DEFAULT NOW()`;
+        await sequelize.query(`ALTER TABLE "ubicacions" ADD COLUMN "timestamp" ${tipoTimestamp}`);
         console.log("Columna timestamp agregada a la tabla ubicacions");
     }
 
-    // Índice para consultas rápidas del historial por usuario (idempotente en PostgreSQL)
-    await sequelize.query(`CREATE INDEX IF NOT EXISTS IX_ubicacion_idUsuario ON "ubicacions" ("idUsuario")`);
+    // Índice para consultas rápidas del historial por usuario (idempotente en ambos motores)
+    if (sequelize.getDialect() === 'mssql') {
+        await sequelize.query(
+            `IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ubicacion_idUsuario' AND object_id = OBJECT_ID('dbo.ubicacions')) ` +
+            `CREATE NONCLUSTERED INDEX IX_ubicacion_idUsuario ON "dbo"."ubicacions" ("idUsuario")`
+        );
+    } else {
+        await sequelize.query(`CREATE INDEX IF NOT EXISTS IX_ubicacion_idUsuario ON "ubicacions" ("idUsuario")`);
+    }
 }
 
 // Elimina las columnas de latitud/longitud de la tabla usuarios.
@@ -51,7 +61,10 @@ async function asegurarEliminacionColumnasUsuario() {
     const nombres = columnas.map(c => c.column_name);
 
     if (nombres.includes('latitud') || nombres.includes('longitud')) {
-        await sequelize.query(`ALTER TABLE "usuarios" DROP COLUMN IF EXISTS latitud, DROP COLUMN IF EXISTS longitud`);
+        const dropColumnas = sequelize.getDialect() === 'mssql'
+            ? `DROP COLUMN latitud, longitud`
+            : `DROP COLUMN IF EXISTS latitud, DROP COLUMN IF EXISTS longitud`;
+        await sequelize.query(`ALTER TABLE "usuarios" ${dropColumnas}`);
         console.log("Columnas latitud/longitud eliminadas de la tabla usuarios");
     }
 }
@@ -65,7 +78,8 @@ async function asegurarColumnasNotificacion() {
     const nombres = columnas.map(c => c.column_name);
 
     if (!nombres.includes('datos_ticket')) {
-        await sequelize.query(`ALTER TABLE "notificacions" ADD COLUMN "datos_ticket" TEXT`);
+        const tipoTexto = sequelize.getDialect() === 'mssql' ? `NVARCHAR(MAX)` : `TEXT`;
+        await sequelize.query(`ALTER TABLE "notificacions" ADD COLUMN "datos_ticket" ${tipoTexto}`);
         console.log("Columna datos_ticket agregada a la tabla notificacions");
     }
 }
