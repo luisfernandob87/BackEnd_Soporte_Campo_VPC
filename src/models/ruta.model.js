@@ -26,6 +26,11 @@ const Ruta = sequelize.define('ruta', {
     descripcion: {
         type: DataTypes.STRING,
         allowNull: true,
+    },
+    orden_bloqueado: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
     }
 }, {
     indexes: [

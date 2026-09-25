@@ -1,8 +1,8 @@
 const { DataTypes } = require('sequelize')
 const { sequelize } = require('../database/database')
 
-const Sede = sequelize.define('sede', {
-    sede_id: {
+const TicketGeoref = sequelize.define('ticket_georef', {
+    ticket_georef_id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
@@ -12,32 +12,27 @@ const Sede = sequelize.define('sede', {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    nombre: {
+    request_id: {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    direccion: {
-        type: DataTypes.STRING,
+    sede_id: {
+        type: DataTypes.INTEGER,
         allowNull: false,
     },
-    correo: {
-        type: DataTypes.STRING,
+    usuario_id: {
+        type: DataTypes.INTEGER,
         allowNull: true,
     },
-    latitud: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    longitud: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    status:{
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
+    fecha: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    }
+}, {
+    tableName: 'ticket_georef',
+    indexes: [
+        { unique: true, fields: ['tipo', 'request_id'] }
+    ]
 })
 
-
-
-module.exports = { Sede }
+module.exports = { TicketGeoref }

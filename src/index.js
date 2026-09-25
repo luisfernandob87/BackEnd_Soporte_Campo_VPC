@@ -84,6 +84,21 @@ async function asegurarColumnasNotificacion() {
     }
 }
 
+// Agrega la columna orden_bloqueado a la tabla ruta si no existe.
+// Valida que el orden fijado por el técnico no sea rehecho por la ruta automática.
+async function asegurarColumnasRuta() {
+    const [columnas] = await sequelize.query(
+        `SELECT column_name FROM information_schema.columns WHERE table_name = 'ruta'`
+    );
+    const nombres = columnas.map(c => c.column_name);
+
+    if (!nombres.includes('orden_bloqueado')) {
+        const tipoBool = sequelize.getDialect() === 'mssql' ? `BIT DEFAULT 0` : `BOOLEAN DEFAULT FALSE`;
+        await sequelize.query(`ALTER TABLE "ruta" ADD COLUMN "orden_bloqueado" ${tipoBool}`);
+        console.log("Columna orden_bloqueado agregada a la tabla ruta");
+    }
+}
+
 async function main() {
     try {
         await sequelize.authenticate()
@@ -94,6 +109,7 @@ async function main() {
         await asegurarTablaUbicacion();
         await asegurarEliminacionColumnasUsuario();
         await asegurarColumnasNotificacion();
+        await asegurarColumnasRuta();
         await deleteUbicacionesVencidas();
         await deleteBitacoraVencida();
         await deleteNotificacionesVencidas();

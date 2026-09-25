@@ -7,6 +7,7 @@ const {
 } = require('../sockets/notificaciones.socket')
 const { registrarBitacora } = require('../controllers/bitacora.controller')
 const { obtenerTicketsAbiertosDeTecnico } = require('./ticketsHelix.service')
+const { sincronizarRutaDelDia } = require('./rutaAutomatica.service')
 
 const INTERVALO_DEFAULT_MS = 2 * 60 * 1000 // 2 minutos
 
@@ -39,6 +40,13 @@ const revisarTicketsNuevos = async () => {
         for (const tecnico of tecnicos) {
             try {
                 const { tickets, workOrders } = await obtenerTicketsAbiertosDeTecnico(tecnico.usuario)
+
+                // Ruta automática del día según los tickets/órdenes abiertos
+                try {
+                    await sincronizarRutaDelDia(tecnico, { tickets, workOrders })
+                } catch (errorRuta) {
+                    console.error(`Error al sincronizar ruta del técnico ${tecnico.usuario}:`, errorRuta.message)
+                }
 
                 for (const entrada of [...tickets, ...workOrders]) {
                     const tipo = entrada.type

@@ -12,6 +12,7 @@ const { routerBitacora } = require('./routes/bitacora.routes');
 const { routerRuta } = require('./routes/ruta.routes');
 const { routerTicket } = require('./routes/ticket.routes');
 const { routerNotificacion } = require('./routes/notificacion.routes');
+const { routerGeoreferencia } = require('./routes/georeferencia.routes');
 const { registrarBitacora } = require('./controllers/bitacora.controller');
 const { Usuario } = require('./models/usuario.model');
 
@@ -57,6 +58,7 @@ app.use(routerBitacora)
 app.use(routerRuta)
 app.use(routerTicket)
 app.use(routerNotificacion)
+app.use(routerGeoreferencia)
 
 // Ruta para generar el token
 app.post('/api/token', async (req, res) => { // Changed from app.get to app.post

@@ -36,6 +36,7 @@ const cargarRuta = async (id) => {
         fecha: ruta.fecha,
         estado: ruta.estado,
         descripcion: ruta.descripcion,
+        orden_bloqueado: ruta.orden_bloqueado ? true : false,
         nombreCompleto: ruta.usuario ? ruta.usuario.nombreCompleto : null,
         sedes: (ruta.detalles || [])
             .slice()
@@ -49,6 +50,7 @@ const cargarRuta = async (id) => {
                 direccion: d.sede ? d.sede.direccion : null,
                 latitud: d.sede ? d.sede.latitud : null,
                 longitud: d.sede ? d.sede.longitud : null,
+                correo: d.sede ? d.sede.correo : null,
             })),
     }
 }
@@ -84,6 +86,27 @@ const getRuta = async (req, res) => {
             return res.status(404).json({ message: 'Ruta no encontrada' })
         }
         res.json(ruta)
+    } catch (error) {
+        res.status(500).json({ message: error.message })
+    }
+}
+
+// Devuelve la ruta del día de un técnico (para que la app numere/ordene sus visitas).
+const getRutaHoy = async (req, res) => {
+    try {
+        const d = new Date()
+        const mm = String(d.getMonth() + 1).padStart(2, '0')
+        const dd = String(d.getDate()).padStart(2, '0')
+        const fecha = `${d.getFullYear()}-${mm}-${dd}`
+
+        const ruta = await Ruta.findOne({
+            where: { usuario_id: req.params.usuario_id, fecha },
+            order: [['fecha', 'DESC'], ['ruta_id', 'DESC']]
+        })
+        if (!ruta) {
+            return res.json(null)
+        }
+        res.json(await cargarRuta(ruta.ruta_id))
     } catch (error) {
         res.status(500).json({ message: error.message })
     }
@@ -168,6 +191,9 @@ const updateRuta = async (req, res) => {
             if (new Set(sedesIds).size !== sedesIds.length) {
                 return res.status(400).json({ message: 'No se permiten sedes repetidas' })
             }
+            // Si la app envía el orden (sedes), el técnico ordenó manualmente:
+            // la ruta automática debe respetarlo y solo reconciliar.
+            campos.orden_bloqueado = true
         }
 
         const t = await sequelize.transaction()
@@ -210,4 +236,4 @@ const deleteRuta = async (req, res) => {
     }
 }
 
-module.exports = { getRutas, getRuta, createRuta, updateRuta, deleteRuta }
+module.exports = { getRutas, getRuta, getRutaHoy, createRuta, updateRuta, deleteRuta }

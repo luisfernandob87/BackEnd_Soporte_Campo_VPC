@@ -68,6 +68,27 @@ const obtenerNombreCliente = (values) => {
     return primerValor(['Customer Name', 'Contact Name']) || 'Sin cliente'
 }
 
+const obtenerEmailCliente = (values) => {
+    const primerValor = (keys) =>
+        keys.map((k) => values?.[k]).find((v) => v && String(v).trim()) || ''
+    return (
+        primerValor([
+            'Internet E-mail',
+            'Customer Internet E-mail',
+            'Direct Contact Internet E-mail',
+            'Customer E-mail',
+            'Contact E-mail'
+        ]) || ''
+    )
+}
+
+const obtenerFechaCreacion = (values, esTicket) => {
+    const primerValor = (keys) =>
+        keys.map((k) => values?.[k]).find((v) => v && String(v).trim()) || ''
+    const clave = esTicket ? 'Reported Date' : 'Submit Date'
+    return primerValor([clave, 'Reported Date', 'Submit Date']) || ''
+}
+
 const mapearTicket = (entry) => {
     const v = entry.values || {}
     return {
@@ -75,11 +96,14 @@ const mapearTicket = (entry) => {
         dwpSrid: v['DWP_SRID'] || 'Sin ID de petición',
         incidentNumber: v['Incident Number'] || 'Sin número de incidente',
         cliente: obtenerNombreCliente(v),
+        email: obtenerEmailCliente(v),
+        fechaCreacion: obtenerFechaCreacion(v, true),
         grupo: v['Assigned Group'] || v['Assigned Support Group'] || 'Sin grupo',
         urgency: v['Urgency'] || 'Sin urgencia',
         priority: v['Priority'] || 'Sin prioridad',
         status: v['Status'] || 'Desconocido',
         type: 'ticket',
+        tecnico: v['Assignee Login ID'] || v['Assignee'] || '',
     }
 }
 
@@ -90,11 +114,14 @@ const mapearWorkOrder = (entry) => {
         dwpSrid: v['DWP_SRID'] || v['SRID'] || 'Sin ID de petición',
         workOrderId: v['Work Order ID'] || 'Sin número de orden',
         cliente: obtenerNombreCliente(v),
+        email: obtenerEmailCliente(v),
+        fechaCreacion: obtenerFechaCreacion(v, false),
         grupo: v['Assigned Group'] || v['Assigned Support Group'] || 'Sin grupo',
         urgency: v['Urgency'] || 'Sin urgencia',
         priority: v['Priority'] || 'Sin prioridad',
         status: v['Status'] || 'Desconocido',
         type: 'workOrder',
+        tecnico: v['ASLOGID'] || v['Assignee Login ID'] || '',
     }
 }
 
