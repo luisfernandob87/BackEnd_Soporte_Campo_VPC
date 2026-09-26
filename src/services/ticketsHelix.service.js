@@ -5,30 +5,59 @@ const FILTRO_TICKETS =
 const FILTRO_WORKORDERS =
     `'Status'!="Completed" AND 'Status'!="Rejected" AND 'Status'!="Cancelled"`
 
+// El grupo asignado usa nombres de campo distintos en cada formulario:
+// HPD:Help Desk -> "Assigned Group" / "Assigned Group ID"
+// WOI:WorkOrder -> ASGRP / ASGRPID
+// Ojo: en la orden "Support Group Name" es el grupo de la empresa del registro,
+// no el grupo asignado al caso.
+const CAMPOS_GRUPO = {
+    ticket: { nombre: ['Assigned Group'], id: ['Assigned Group ID'] },
+    workOrder: { nombre: ['ASGRP'], id: ['ASGRPID'] },
+}
+
+let cacheNombresGrupos = null
+let cacheNombresGruposEn = 0
+const CACHE_GRUPOS_TTL_MS = 10 * 60 * 1000
+
+// Mapa id -> nombre de todos los grupos de soporte, para resolver el nombre
+// del grupo de las órdenes (la WOI:WorkOrder no lo trae, solo su ASGRPID).
+const obtenerNombresGrupos = async () => {
+    if (cacheNombresGrupos && Date.now() - cacheNombresGruposEn < CACHE_GRUPOS_TTL_MS) {
+        return cacheNombresGrupos
+    }
+    try {
+        const entradas = await getEntradas('CTM:Support Group', '')
+        const mapa = new Map()
+        for (const e of entradas) {
+            const v = e.values || {}
+            const id = v['Support Group ID']
+            const nombre = v['Support Group Name']
+            if (id && nombre) mapa.set(String(id), nombre)
+        }
+        cacheNombresGrupos = mapa
+        cacheNombresGruposEn = Date.now()
+        return mapa
+    } catch (error) {
+        console.error('Error al obtener los grupos de soporte:', error)
+        return new Map()
+    }
+}
+
 const getGruposRutaDeTecnico = async (loginId) => {
     try {
-        const asociaciones = await getEntradas(
-            'CTM:Support Group Association',
-            `'Login ID'="${loginId}"`
-        )
+        const [asociaciones, nombresGrupos] = await Promise.all([
+            getEntradas(
+                'CTM:Support Group Association',
+                `'Login ID'="${loginId}"`
+            ),
+            obtenerNombresGrupos(),
+        ])
         const gruposRuta = []
         for (const asociacion of asociaciones) {
             const v = asociacion.values || {}
             const id = v['Support Group ID']
-            const tempName = v['Support Group Name'] || id
             if (!id) continue
-            let name = tempName
-            try {
-                const detalles = await getEntradas(
-                    'CTM:Support Group',
-                    `'Support Group ID'="${id}"`
-                )
-                if (detalles[0]?.values?.['Support Group Name']) {
-                    name = detalles[0].values['Support Group Name']
-                }
-            } catch (error) {
-                console.error(`Error al obtener el grupo ${id}:`, error)
-            }
+            const name = nombresGrupos.get(String(id)) || v['Support Group Name'] || id
             if (name.startsWith('Ruta')) {
                 gruposRuta.push(id)
             }
@@ -89,7 +118,20 @@ const obtenerFechaCreacion = (values, esTicket) => {
     return primerValor([clave, 'Reported Date', 'Submit Date']) || ''
 }
 
-const mapearTicket = (entry) => {
+// Nombre del grupo asignado al caso. Si la entrada no trae el nombre, se
+// resuelve el id con el catálogo de CTM:Support Group.
+const obtenerNombreGrupo = (values, campos, nombresGrupos) => {
+    const nombre = campos.nombre.map((k) => values?.[k]).find((v) => v && String(v).trim())
+    if (nombre) return nombre
+    const id = campos.id.map((k) => values?.[k]).find((v) => v && String(v).trim())
+    if (id && nombresGrupos) {
+        const nombreGrupo = nombresGrupos.get(String(id))
+        if (nombreGrupo) return nombreGrupo
+    }
+    return 'Sin grupo'
+}
+
+const mapearTicket = (entry, nombresGrupos) => {
     const v = entry.values || {}
     return {
         id: v['Request ID'] || v['Incident Number'] || 'Sin ID',
@@ -98,7 +140,7 @@ const mapearTicket = (entry) => {
         cliente: obtenerNombreCliente(v),
         email: obtenerEmailCliente(v),
         fechaCreacion: obtenerFechaCreacion(v, true),
-        grupo: v['Assigned Group'] || v['Assigned Support Group'] || 'Sin grupo',
+        grupo: obtenerNombreGrupo(v, CAMPOS_GRUPO.ticket, nombresGrupos),
         urgency: v['Urgency'] || 'Sin urgencia',
         priority: v['Priority'] || 'Sin prioridad',
         status: v['Status'] || 'Desconocido',
@@ -107,7 +149,7 @@ const mapearTicket = (entry) => {
     }
 }
 
-const mapearWorkOrder = (entry) => {
+const mapearWorkOrder = (entry, nombresGrupos) => {
     const v = entry.values || {}
     return {
         id: v['Request ID'] || v['Work Order ID'] || 'Sin ID',
@@ -116,7 +158,7 @@ const mapearWorkOrder = (entry) => {
         cliente: obtenerNombreCliente(v),
         email: obtenerEmailCliente(v),
         fechaCreacion: obtenerFechaCreacion(v, false),
-        grupo: v['Assigned Group'] || v['Assigned Support Group'] || 'Sin grupo',
+        grupo: obtenerNombreGrupo(v, CAMPOS_GRUPO.workOrder, nombresGrupos),
         urgency: v['Urgency'] || 'Sin urgencia',
         priority: v['Priority'] || 'Sin prioridad',
         status: v['Status'] || 'Desconocido',
@@ -147,15 +189,19 @@ const obtenerTicketsAbiertosDeTecnico = async (loginId) => {
         ])
     }
 
+    const nombresGrupos = await obtenerNombresGrupos()
+
     return {
-        tickets: ticketsEntries.map(mapearTicket),
-        workOrders: workOrdersEntries.map(mapearWorkOrder),
+        tickets: ticketsEntries.map((e) => mapearTicket(e, nombresGrupos)),
+        workOrders: workOrdersEntries.map((e) => mapearWorkOrder(e, nombresGrupos)),
     }
 }
 
 module.exports = {
     FILTRO_TICKETS,
     FILTRO_WORKORDERS,
+    obtenerNombresGrupos,
+    obtenerNombreGrupo,
     getGruposRutaDeTecnico,
     condicionGrupo,
     obtenerNombreCliente,

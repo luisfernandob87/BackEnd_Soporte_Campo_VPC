@@ -92,9 +92,13 @@ const obtenerTicketsGeoreferencia = async (tecnico = '') => {
     const manualPorPar = new Map()
     for (const m of manuales) manualPorPar.set(`${m.tipo}|${m.request_id}`, m)
 
+    // La WOI:WorkOrder no devuelve el nombre del grupo, solo su id: se resuelve
+    // con los grupos Ruta ya cargados.
+    const nombresGrupos = new Map(gruposRuta.map((g) => [String(g.id), g.nombre]))
+
     const entradas = [
-        ...ticketsEntries.map(mapearTicket),
-        ...workOrdersEntries.map(mapearWorkOrder),
+        ...ticketsEntries.map((e) => mapearTicket(e, nombresGrupos)),
+        ...workOrdersEntries.map((e) => mapearWorkOrder(e, nombresGrupos)),
     ]
 
     let tickets = entradas.map((e) => {
