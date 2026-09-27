@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "db:migrate": "node src/database/migrate.js",
+    "db:reset": "node src/database/reset.js"
   },
   "keywords": [],
   "author": "",
